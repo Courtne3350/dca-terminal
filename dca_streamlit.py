@@ -6,7 +6,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 
 # ============================================================
-FMP_API_KEY = "EYvxgDDR8rkT4oLNN8UwawYcg2S8yofu"  # ← put your real key here
+FMP_API_KEY = st.secrets.get("FMP_API_KEY", "")
 # ============================================================
 
 st.set_page_config(page_title="DCA Terminal", page_icon="◆", layout="wide")
