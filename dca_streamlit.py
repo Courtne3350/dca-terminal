@@ -118,6 +118,17 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #ED
 .peer-table tr:last-child td { border-bottom: none; }
 .peer-table tr:hover td { background: #1a1e27; }
 
+/* Make radio / toggle text more readable */
+div[data-testid="stRadio"] label {
+    color: #EDEFF3 !important;
+    font-size: 0.95rem !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+}
+div[data-testid="stRadio"] label p {
+    color: #EDEFF3 !important;
+    font-size: 0.95rem !important;
+}
+
 section[data-testid="stSidebar"] { background: #12151b !important; border-right: 1px solid #232833; }
 .stButton > button { background: #E8A33D !important; color: #0A0C10 !important; border: none; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; width: 100%; }
 .stSidebar label, .stSidebar p, .stSidebar .stMarkdown, .stSidebar span { color: #EDEFF3 !important; }
@@ -201,43 +212,47 @@ def build_ticker_html(data):
     content = "".join(items)
     return f'<div class="ticker-wrap"><div class="ticker-track">{content}{content}</div></div>'
 
-def fetch_perf(symbol):
+def fetch_heatmap_item(symbol):
     try:
-        hist = yf.Ticker(symbol).history(period="5d")
-        if hist.empty or len(hist) < 2: return None
+        t = yf.Ticker(symbol)
+        hist = t.history(period="5d")
+        if hist.empty or len(hist) < 2:
+            return None
         last = hist["Close"].iloc[-1]
         prev = hist["Close"].iloc[-2]
         chg = ((last - prev) / prev) * 100
+        info = t.info
+        mcap = info.get("marketCap") or 1e9
         name = symbol.replace("-USD", "")
-        return {"symbol": symbol, "name": name, "change": chg, "price": last}
-    except: return None
+        return {"symbol": symbol, "name": name, "change": chg, "market_cap": mcap, "price": last}
+    except:
+        return None
 
 @st.cache_data(ttl=300)
 def get_heatmap_data(mode="sp"):
     symbols = TOP_SP_STOCKS + list(SECTOR_ETFS.keys()) if mode == "sp" else TOP_CRYPTOS
     with ThreadPoolExecutor(max_workers=15) as ex:
-        results = list(ex.map(fetch_perf, symbols))
+        results = list(ex.map(fetch_heatmap_item, symbols))
     return [r for r in results if r]
 
 def create_heatmap(data, title):
-    if not data: return None
+    if not data:
+        return None
     df = pd.DataFrame(data)
-    df["abs_change"] = df["change"].abs().clip(lower=0.3)
-    # Clean label with no decimals
     df["label"] = df.apply(lambda r: f"{r['name']}<br>{r['change']:+.0f}%", axis=1)
 
     fig = px.treemap(
         df,
         path=["name"],
-        values="abs_change",
-        color="change",
+        values="market_cap",                    # ← size by Market Cap
+        color="change",                         # ← color by 1-day % change
         color_continuous_scale=["#FF4D4D", "#2A2F3A", "#3ECF8E"],
         color_continuous_midpoint=0,
     )
     fig.update_traces(
         texttemplate="%{label}",
         textfont=dict(size=15, family="IBM Plex Mono", color="#FFFFFF"),
-        hovertemplate="<b>%{label}</b><extra></extra>",
+        hovertemplate="<b>%{label}</b><br>Market Cap based size<extra></extra>",
         marker=dict(line=dict(width=2, color="#0A0C10")),
         textposition="middle center"
     )
@@ -263,7 +278,8 @@ def get_crypto_fear_greed():
         r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=8).json()
         d = r["data"][0]
         return int(d["value"]), d["value_classification"]
-    except: return None, None
+    except:
+        return None, None
 
 @st.cache_data(ttl=600)
 def get_stock_fear_greed():
@@ -276,10 +292,12 @@ def get_stock_fear_greed():
         elif score <= 80: label = "Greed"
         else: label = "Extreme Greed"
         return score, label + " (VIX proxy)"
-    except: return None, None
+    except:
+        return None, None
 
 def create_fear_greed_gauge(score, title):
-    if score is None: return None
+    if score is None:
+        return None
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=score,
         domain={'x': [0.05, 0.95], 'y': [0.05, 0.85]},
@@ -316,13 +334,15 @@ def get_revenue_and_price(ticker):
                     rev = item.get("revenue")
                     if date and rev is not None:
                         revenue_data.append({"date": date, "revenue": rev})
-        except: pass
+        except:
+            pass
     try:
         hist = yf.Ticker(ticker).history(period="5y")
         if not hist.empty:
             price_data = hist[["Close"]].reset_index()
             price_data.columns = ["date", "price"]
-    except: pass
+    except:
+        pass
     return revenue_data, price_data
 
 def create_revenue_price_chart(revenue_data, price_data, ticker):
@@ -348,25 +368,37 @@ def create_revenue_price_chart(revenue_data, price_data, ticker):
 
 def resolve(text):
     t = text.strip().lower()
-    if t in NAME_MAP: return NAME_MAP[t]
-    if t.isdigit() and len(t) in (3, 4): return t + ".T"
+    if t in NAME_MAP:
+        return NAME_MAP[t]
+    if t.isdigit() and len(t) in (3, 4):
+        return t + ".T"
     return text.strip().upper()
 
 def format_large_number(val):
-    if val is None: return "—", ""
-    try: v = float(val)
-    except: return "—", ""
+    if val is None:
+        return "—", ""
+    try:
+        v = float(val)
+    except:
+        return "—", ""
     abs_v = abs(v)
-    if abs_v >= 1e12: return f"{v/1e12:.2f}", "trillion"
-    elif abs_v >= 1e9: return f"{v/1e9:.2f}", "billion"
-    elif abs_v >= 1e6: return f"{v/1e6:.2f}", "million"
-    elif abs_v >= 1e3: return f"{v:,.1f}", ""
+    if abs_v >= 1e12:
+        return f"{v/1e12:.2f}", "trillion"
+    elif abs_v >= 1e9:
+        return f"{v/1e9:.2f}", "billion"
+    elif abs_v >= 1e6:
+        return f"{v/1e6:.2f}", "million"
+    elif abs_v >= 1e3:
+        return f"{v:,.1f}", ""
     return f"{v:.2f}", ""
 
 def get_status(val, good, ok=None, reverse=False, pct=False):
-    if val is None: return "gray", "—"
-    try: v = float(val)
-    except: return "gray", "—"
+    if val is None:
+        return "gray", "—"
+    try:
+        v = float(val)
+    except:
+        return "gray", "—"
     if reverse:
         status = "green" if v <= good else ("orange" if ok and v <= ok else "red")
     else:
@@ -377,18 +409,23 @@ def get_status(val, good, ok=None, reverse=False, pct=False):
 def get_btc_price():
     try:
         return yf.Ticker("BTC-USD").info.get("regularMarketPrice")
-    except: return None
+    except:
+        return None
 
 def get_shares_outstanding(ticker):
-    try: return yf.Ticker(ticker).info.get("sharesOutstanding")
-    except: return None
+    try:
+        return yf.Ticker(ticker).info.get("sharesOutstanding")
+    except:
+        return None
 
 def get_fx_rate(currency):
-    if not currency or currency.upper() == "USD": return 1.0
+    if not currency or currency.upper() == "USD":
+        return 1.0
     try:
         rate = yf.Ticker(f"{currency.upper()}=X").info.get("regularMarketPrice")
         return float(rate) if rate and rate > 0 else 1.0
-    except: return 1.0
+    except:
+        return 1.0
 
 def get_company_extra(ticker):
     summary, holders = None, []
@@ -402,15 +439,20 @@ def get_company_extra(ticker):
                 pct = row.get("% Out") or row.get("pctOut")
                 pct_str = f"{float(pct)*100:.1f}%" if pct and float(pct) < 1 else (f"{float(pct):.1f}%" if pct else "—")
                 holders.append((str(name), pct_str))
-    except: pass
+    except:
+        pass
     return summary, holders
 
 def get_data(ticker):
-    data = {"name": ticker, "sector": "", "source": "Yahoo", "forward_pe": None, "ev_ebitda": None,
-            "fcf_yield": None, "roe": None, "operating_margin": None, "gross_margin": None,
-            "debt_equity": None, "rev_growth": None, "current_price": None, "market_cap": None,
-            "free_cashflow": None, "total_cash": None, "total_debt": None, "net_cash": None,
-            "currency": "USD", "price_usd": None, "original_price": None}
+    data = {
+        "name": ticker, "sector": "", "source": "Yahoo",
+        "forward_pe": None, "ev_ebitda": None, "fcf_yield": None,
+        "roe": None, "operating_margin": None, "gross_margin": None,
+        "debt_equity": None, "rev_growth": None, "current_price": None,
+        "market_cap": None, "free_cashflow": None, "total_cash": None,
+        "total_debt": None, "net_cash": None, "currency": "USD",
+        "price_usd": None, "original_price": None
+    }
     try:
         info = yf.Ticker(ticker).info
         data["name"] = info.get("shortName") or info.get("longName") or ticker
@@ -429,22 +471,22 @@ def get_data(ticker):
         data["total_cash"] = info.get("totalCash")
         data["total_debt"] = info.get("totalDebt")
         data["currency"] = info.get("currency") or "USD"
-    except: pass
+    except:
+        pass
 
     data["original_price"] = data["current_price"]
-    fx = get_fx_rate(data["currency"])
 
-    # Convert price to USD
-    if data["current_price"] and data["currency"] != "USD":
-        data["price_usd"] = data["current_price"] * fx
-    else:
-        data["price_usd"] = data["current_price"]
-
-    # For Japanese stocks, yfinance marketCap is often already in USD
-    # but if it looks like JPY (very large), convert it
-    if data["currency"] == "JPY" and data.get("market_cap"):
-        if data["market_cap"] > 1e12:  # likely in JPY
+    # Force conversion for Japanese stocks
+    if ticker.endswith(".T") or data.get("currency") == "JPY":
+        fx = get_fx_rate("JPY")
+        if data["current_price"]:
+            data["price_usd"] = data["current_price"] * fx
+            data["currency"] = "JPY"
+        if data.get("market_cap") and data["market_cap"] > 1e12:
             data["market_cap"] = data["market_cap"] * fx
+    else:
+        fx = get_fx_rate(data["currency"])
+        data["price_usd"] = data["current_price"] * fx if data["current_price"] and data["currency"] != "USD" else data["current_price"]
 
     if data["total_cash"] is not None and data["total_debt"] is not None:
         data["net_cash"] = data["total_cash"] - data["total_debt"]
@@ -476,7 +518,8 @@ def get_peer_metrics(tickers, btc_price):
     return rows
 
 def render_peer_table(rows):
-    if not rows: return
+    if not rows:
+        return
     html = ['<table class="peer-table"><thead><tr>']
     headers = ["Ticker", "Price", "mNAV", "BTC Holdings", "FCF Yield", "Fwd P/E"]
     for h in headers:
@@ -516,6 +559,7 @@ market_data = get_market_snapshot()
 if market_data:
     st.markdown(build_ticker_html(market_data), unsafe_allow_html=True)
 
+# Fear & Greed
 stock_score, stock_label = get_stock_fear_greed()
 crypto_score, crypto_label = get_crypto_fear_greed()
 fg1, fg2 = st.columns(2)
@@ -532,13 +576,20 @@ with fg2:
         if crypto_label:
             st.markdown(f"<div style='text-align:center; font-family:Space Grotesk; font-size:0.95rem; color:#E8A33D; margin-top:-12px;'>{crypto_label}</div>", unsafe_allow_html=True)
 
+# Heatmap
 st.markdown('<div class="section-label">Market Heatmap</div>', unsafe_allow_html=True)
-heatmap_mode = st.radio("View", ["S&P Top 20 + Sectors", "Crypto"], horizontal=True, label_visibility="collapsed", key="heatmap_mode")
+heatmap_mode = st.radio(
+    "Select view",
+    ["S&P Top 20 + Sectors", "Crypto"],
+    horizontal=True,
+    label_visibility="visible",
+    key="heatmap_mode"
+)
 hm_data = get_heatmap_data("sp" if heatmap_mode.startswith("S&P") else "crypto")
-fig = create_heatmap(hm_data, f"{heatmap_mode} — 1 Day Performance")
+fig = create_heatmap(hm_data, f"{heatmap_mode} — Size by Market Cap · Color by 1-Day % Change")
 if fig:
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-st.caption("Box size ≈ absolute move strength · Color = 1-day percentage price change")
+st.caption("Box size = Market Cap · Color = 1-day percentage price change")
 
 st.markdown("")
 
@@ -594,6 +645,7 @@ else:
         <div class="desc-box" data-full="{full_escaped}">{short}</div>
         """, unsafe_allow_html=True)
 
+    # Bitcoin Treasury
     btc_price = custom_btc_price if custom_btc_price > 0 else live_btc
     btc_holdings = btc_holdings_input if btc_holdings_input > 0 else KNOWN_BTC_HOLDINGS.get(ticker)
     market_cap = data.get("market_cap")
@@ -796,6 +848,7 @@ else:
         <span style="font-family:'IBM Plex Mono'; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
     </div>""", unsafe_allow_html=True)
 
+    # Revenue vs Price
     st.markdown('<div class="section-label">Revenue vs Stock Price</div>', unsafe_allow_html=True)
     with st.spinner("Loading revenue data..."):
         rev_data, price_data = get_revenue_and_price(ticker)
