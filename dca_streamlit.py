@@ -21,7 +21,6 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-/* Force consistent fonts everywhere */
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label, .stApp li {
     font-family: 'Inter', sans-serif !important;
     color: #EDEFF3;
@@ -167,7 +166,8 @@ NAME_MAP = {
     "tesla": "TSLA", "hut 8": "HUT", "block": "XYZ", "coinbase": "COIN",
     "trump media": "DJT", "galaxy": "GLXY", "gamestop": "GME", "nakamoto": "NAKA",
     "apple": "AAPL", "microsoft": "MSFT", "nvidia": "NVDA", "amazon": "AMZN",
-    "google": "GOOGL", "meta": "META",
+    "google": "GOOGL", "meta": "META", "adobe": "ADBE", "adbe": "ADBE",
+    "h100": "H100.L", "h100 group": "H100.L", "iren": "IREN",
 }
 
 KNOWN_BTC_HOLDINGS = {
@@ -361,8 +361,14 @@ def create_revenue_price_chart(revenue_data, price_data, ticker):
 
 def resolve(text):
     t = text.strip().lower()
-    if t in NAME_MAP: return NAME_MAP[t]
-    if t.isdigit() and len(t) in (3, 4): return t + ".T"
+    if t in NAME_MAP:
+        return NAME_MAP[t]
+    # Common suffixes for international tickers
+    if t.isdigit() and len(t) in (3, 4):
+        return t + ".T"
+    # Allow commodities and ETFs directly
+    if any(x in t for x in ["=f", "-usd", ".l", ".de", ".pa", ".as"]):
+        return text.strip().upper()
     return text.strip().upper()
 
 def format_large_number(val, show_dollar=False):
@@ -403,7 +409,6 @@ def get_fx_rate(currency):
         if rate and rate > 0:
             return float(rate)
     except: pass
-    # Hard-coded fallback for JPY (approx from Yahoo)
     if currency.upper() == "JPY":
         return 0.00675
     return 1.0
@@ -436,7 +441,7 @@ def get_data(ticker):
     try:
         info = yf.Ticker(ticker).info
         data["name"] = info.get("shortName") or info.get("longName") or ticker
-        data["sector"] = info.get("sector", "")
+        data["sector"] = info.get("sector", "") or info.get("quoteType", "")
         data["forward_pe"] = info.get("forwardPE") or info.get("trailingPE")
         data["ev_ebitda"] = info.get("enterpriseToEbitda")
         data["market_cap"] = info.get("marketCap")
@@ -455,14 +460,13 @@ def get_data(ticker):
 
     data["original_price"] = data["current_price"]
 
-    # ========== STRONG FORCE CONVERSION FOR METAPLANET & JAPANESE STOCKS ==========
+    # Force conversion for Japanese stocks
     is_japanese = ticker.endswith(".T") or data["currency"] in ["JPY", "¥"]
     if is_japanese or ticker == "3350.T":
         fx = get_fx_rate("JPY")
         if data["current_price"]:
             data["price_usd"] = data["current_price"] * fx
             data["currency"] = "JPY"
-        # Also convert market cap if it looks like it's still in JPY
         if data.get("market_cap") and data["market_cap"] > 1e12:
             data["market_cap"] = data["market_cap"] * fx
     else:
@@ -593,8 +597,9 @@ ticker = st.session_state.selected_ticker
 data = get_data(ticker)
 summary, holders = get_company_extra(ticker)
 
-if not data.get("name"):
-    st.error(f"No data for **{ticker}**")
+# Even if fundamentals are missing (ETFs / commodities), still show price
+if not data.get("current_price") and not data.get("price_usd"):
+    st.error(f"No price data found for **{ticker}**. Try a different ticker.")
 else:
     price_usd = data.get("price_usd")
     original = data.get("original_price")
@@ -735,17 +740,13 @@ else:
                         st.session_state.selected_ticker = p
                         st.rerun()
 
-    # Metrics + Fair Values
+    # Metrics
     fair_value_pe = None
     if data.get("forward_pe") and data.get("price_usd") and data["forward_pe"] > 0:
         fair_value_pe = data["price_usd"] * (18 / data["forward_pe"])
 
-    fair_value_oe = None
-    shares = get_shares_outstanding(ticker)
-    if data.get("free_cashflow") and shares and shares > 0:
-        fair_value_oe = (data["free_cashflow"] * 15) / shares
-
-    fair_value = fair_value_oe or fair_value_pe
+    # Only use P/E method for the chart (Owner Earnings removed when negative)
+    fair_value = fair_value_pe
 
     def card(title, value, status, suffix="", raw_value=None, tooltip="", is_money=False):
         if raw_value is not None:
@@ -795,24 +796,15 @@ else:
             card("Net Cash / Debt", "—", "gray")
         card("Free Cash Flow", "", "gray", raw_value=data.get("free_cashflow"), tooltip="Cash after capex", is_money=True)
 
-    st.markdown('<div class="section-label">Fair Value Estimates</div>', unsafe_allow_html=True)
-    fv1, fv2 = st.columns(2)
-    with fv1:
-        if fair_value_pe:
-            st.markdown(f"""
-            <div class="fv-card" title="Target forward P/E of 18">
-                <div class="fv-label">P/E Method (target 18×)</div>
-                <div class="fv-value">${fair_value_pe:.1f}</div>
-                <div class="fv-note">Simple earnings multiple</div>
-            </div>""", unsafe_allow_html=True)
-    with fv2:
-        if fair_value_oe:
-            st.markdown(f"""
-            <div class="fv-card" title="Free Cash Flow × 15">
-                <div class="fv-label">Owner Earnings (15× FCF)</div>
-                <div class="fv-value">${fair_value_oe:.1f}</div>
-                <div class="fv-note">More conservative cash-flow based</div>
-            </div>""", unsafe_allow_html=True)
+    # Fair Value (only P/E method now)
+    if fair_value_pe:
+        st.markdown('<div class="section-label">Fair Value Estimate</div>', unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="fv-card" title="Target forward P/E of 18">
+            <div class="fv-label">P/E Method (target 18×)</div>
+            <div class="fv-value">${fair_value_pe:.1f}</div>
+            <div class="fv-note">Simple earnings multiple</div>
+        </div>""", unsafe_allow_html=True)
 
     greens = count_greens(data)
     cls = "signal-green" if greens >= 5 else ("signal-orange" if greens >= 3 else "signal-red")
@@ -823,8 +815,8 @@ else:
         <span style="font-family:'IBM Plex Mono',monospace; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
     </div>""", unsafe_allow_html=True)
 
-    # Fair Value Iceberg Chart
-    if fair_value and price_usd:
+    # Fair Value Iceberg Chart (only if we have a positive fair value)
+    if fair_value and price_usd and fair_value > 0:
         st.markdown('<div class="section-label">Fair Value Chart</div>', unsafe_allow_html=True)
         try:
             hist = yf.Ticker(ticker).history(period="2y")
