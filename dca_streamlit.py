@@ -21,9 +21,22 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-.stApp { background: #0A0C10; color: #EDEFF3; font-family: 'Inter', sans-serif; }
-h1, h2, h3, h4, p, span, label, div { font-family: 'Inter', sans-serif !important; }
-.metric-value, .mono, code { font-family: 'IBM Plex Mono', monospace !important; font-variant-numeric: tabular-nums; }
+/* Force consistent fonts everywhere */
+.stApp, .stApp p, .stApp span, .stApp div, .stApp label, .stApp li {
+    font-family: 'Inter', sans-serif !important;
+    color: #EDEFF3;
+}
+h1, h2, h3, h4, .term-title, .ticker-name {
+    font-family: 'Space Grotesk', sans-serif !important;
+}
+.metric-value, .mono, .ticker-price, .fv-value, .btc-card .metric-value,
+.peer-table, .holder-row, .ticker-meta, .section-label, .metric-label,
+.btc-label, .fv-label, .fv-note, .status, code {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.stApp { background: #0A0C10; }
 
 .ticker-wrap {
     background: linear-gradient(90deg, #0d1117, #12151b, #0d1117);
@@ -40,15 +53,15 @@ h1, h2, h3, h4, p, span, label, div { font-family: 'Inter', sans-serif !importan
 
 .term-header { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #232833; padding-bottom: 14px; margin-bottom: 16px; }
 .term-dot { width: 9px; height: 9px; border-radius: 50%; background: #E8A33D; box-shadow: 0 0 10px #E8A33D; }
-.term-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.55rem; font-weight: 700; color: #EDEFF3; }
+.term-title { font-size: 1.55rem; font-weight: 700; color: #EDEFF3; }
 .term-sub { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: #7C8494; }
 
 .ticker-bar { background: linear-gradient(180deg, #171b23, #12151b); border: 1px solid #232833; border-left: 3px solid #E8A33D; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.ticker-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 600; color: #EDEFF3; }
-.ticker-meta { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: #7C8494; margin-top: 3px; }
-.ticker-price { font-family: 'IBM Plex Mono', monospace; font-size: 1.7rem; font-weight: 600; cursor: help; color: #EDEFF3; }
+.ticker-name { font-size: 1.3rem; font-weight: 600; color: #EDEFF3; }
+.ticker-meta { font-size: 0.8rem; color: #7C8494; margin-top: 3px; }
+.ticker-price { font-size: 1.7rem; font-weight: 600; cursor: help; color: #EDEFF3; }
 
-.section-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: #7C8494; border-bottom: 1px solid #232833; padding-bottom: 7px; margin: 8px 0 14px 0; }
+.section-label { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: #7C8494; border-bottom: 1px solid #232833; padding-bottom: 7px; margin: 8px 0 14px 0; }
 
 .metric-card {
     background: #12151b; border: 1px solid #232833; border-radius: 10px;
@@ -59,19 +72,19 @@ h1, h2, h3, h4, p, span, label, div { font-family: 'Inter', sans-serif !importan
 .metric-card.status-red { border-color: #FF6B6B; box-shadow: 0 0 0 1px rgba(255,107,107,0.45), 0 0 12px rgba(255,107,107,0.25); }
 .metric-card.status-gray { border-color: #4B5160; }
 
-.metric-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
+.metric-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 .metric-row { display: flex; justify-content: space-between; align-items: baseline; }
-.metric-value { font-size: 1.45rem; font-weight: 600; color: #EDEFF3; font-family: 'IBM Plex Mono', monospace; }
-.status { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 5px; }
+.metric-value { font-size: 1.45rem; font-weight: 600; color: #EDEFF3; }
+.status { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 5px; }
 .status-green { color: #3ECF8E; background: rgba(62,207,142,0.12); }
 .status-red { color: #FF6B6B; background: rgba(255,107,107,0.12); }
 .status-orange { color: #E8A33D; background: rgba(232,163,61,0.12); }
 .status-gray { color: #7C8494; background: rgba(75,81,96,0.15); }
 
 .fv-card { background: linear-gradient(165deg, #171b23, #12151b); border: 1px solid #232833; border-left: 3px solid #E8A33D; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
-.fv-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
-.fv-value { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 600; color: #E8A33D; }
-.fv-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: #7C8494; margin-top: 4px; }
+.fv-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.fv-value { font-size: 1.6rem; font-weight: 600; color: #E8A33D; }
+.fv-note { font-size: 0.72rem; color: #7C8494; margin-top: 4px; }
 
 .btc-card {
     background: linear-gradient(165deg, #1a1208, #12151b);
@@ -80,7 +93,7 @@ h1, h2, h3, h4, p, span, label, div { font-family: 'Inter', sans-serif !importan
     min-height: 110px; display: flex; flex-direction: column; justify-content: space-between;
     cursor: help;
 }
-.btc-label { color: #E8A33D; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
+.btc-label { color: #E8A33D; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 
 .desc-box {
     background: #12151b; border: 1px solid #232833; border-radius: 10px;
@@ -97,17 +110,17 @@ h1, h2, h3, h4, p, span, label, div { font-family: 'Inter', sans-serif !importan
 
 .holder-row {
     display: flex; justify-content: space-between; padding: 8px 0;
-    border-bottom: 1px solid #1e222b; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem;
+    border-bottom: 1px solid #1e222b; font-size: 0.85rem;
 }
 
-.signal-banner { font-family: 'Space Grotesk', sans-serif; font-weight: 600; padding: 14px 18px; border-radius: 10px; margin: 18px 0; display: flex; justify-content: space-between; align-items: center; }
+.signal-banner { font-family: 'Space Grotesk', sans-serif !important; font-weight: 600; padding: 14px 18px; border-radius: 10px; margin: 18px 0; display: flex; justify-content: space-between; align-items: center; }
 .signal-green { background: rgba(62,207,142,0.10); border: 1px solid rgba(62,207,142,0.35); color: #3ECF8E; }
 .signal-orange { background: rgba(232,163,61,0.10); border: 1px solid rgba(232,163,61,0.35); color: #E8A33D; }
 .signal-red { background: rgba(255,107,107,0.10); border: 1px solid rgba(255,107,107,0.35); color: #FF6B6B; }
 
 .peer-table {
-    width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.85rem; background: #12151b; border: 1px solid #232833; border-radius: 10px; overflow: hidden;
+    width: 100%; border-collapse: collapse; font-size: 0.85rem;
+    background: #12151b; border: 1px solid #232833; border-radius: 10px; overflow: hidden;
 }
 .peer-table th {
     background: #171b23; color: #E8A33D; text-align: left; padding: 12px 14px;
@@ -125,7 +138,7 @@ div[data-testid="stRadio"] label p {
 }
 
 section[data-testid="stSidebar"] { background: #12151b !important; border-right: 1px solid #232833; }
-.stButton > button { background: #E8A33D !important; color: #0A0C10 !important; border: none; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; width: 100%; }
+.stButton > button { background: #E8A33D !important; color: #0A0C10 !important; border: none; border-radius: 8px; font-family: 'Space Grotesk', sans-serif !important; font-weight: 600; width: 100%; }
 .stSidebar label, .stSidebar p, .stSidebar .stMarkdown, .stSidebar span { color: #EDEFF3 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -352,16 +365,17 @@ def resolve(text):
     if t.isdigit() and len(t) in (3, 4): return t + ".T"
     return text.strip().upper()
 
-def format_large_number(val):
+def format_large_number(val, show_dollar=False):
     if val is None: return "—", ""
     try: v = float(val)
     except: return "—", ""
     abs_v = abs(v)
-    if abs_v >= 1e12: return f"{v/1e12:.2f}", "trillion"
-    elif abs_v >= 1e9: return f"{v/1e9:.2f}", "billion"
-    elif abs_v >= 1e6: return f"{v/1e6:.2f}", "million"
-    elif abs_v >= 1e3: return f"{v:,.1f}", ""
-    return f"{v:.2f}", ""
+    prefix = "$" if show_dollar else ""
+    if abs_v >= 1e12: return f"{prefix}{v/1e12:.2f}", "trillion"
+    elif abs_v >= 1e9: return f"{prefix}{v/1e9:.2f}", "billion"
+    elif abs_v >= 1e6: return f"{prefix}{v/1e6:.2f}", "million"
+    elif abs_v >= 1e3: return f"{prefix}{v:,.1f}", ""
+    return f"{prefix}{v:.2f}", ""
 
 def get_status(val, good, ok=None, reverse=False, pct=False):
     if val is None: return "gray", "—"
@@ -386,8 +400,13 @@ def get_fx_rate(currency):
     if not currency or currency.upper() == "USD": return 1.0
     try:
         rate = yf.Ticker(f"{currency.upper()}=X").info.get("regularMarketPrice")
-        return float(rate) if rate and rate > 0 else 1.0
-    except: return 1.0
+        if rate and rate > 0:
+            return float(rate)
+    except: pass
+    # Hard-coded fallback for JPY (approx from Yahoo)
+    if currency.upper() == "JPY":
+        return 0.00675
+    return 1.0
 
 def get_company_extra(ticker):
     summary, holders = None, []
@@ -436,14 +455,15 @@ def get_data(ticker):
 
     data["original_price"] = data["current_price"]
 
-    # ========== STRONG FORCE CONVERSION ==========
+    # ========== STRONG FORCE CONVERSION FOR METAPLANET & JAPANESE STOCKS ==========
     is_japanese = ticker.endswith(".T") or data["currency"] in ["JPY", "¥"]
-    if is_japanese:
+    if is_japanese or ticker == "3350.T":
         fx = get_fx_rate("JPY")
         if data["current_price"]:
             data["price_usd"] = data["current_price"] * fx
             data["currency"] = "JPY"
-        if data.get("market_cap") and data["market_cap"] > 5e11:  # likely still in JPY
+        # Also convert market cap if it looks like it's still in JPY
+        if data.get("market_cap") and data["market_cap"] > 1e12:
             data["market_cap"] = data["market_cap"] * fx
     else:
         fx = get_fx_rate(data["currency"])
@@ -528,13 +548,13 @@ with fg1:
     if gauge:
         st.plotly_chart(gauge, use_container_width=True, config={"displayModeBar": False})
         if stock_label:
-            st.markdown(f"<div style='text-align:center; font-family:Space Grotesk; font-size:0.95rem; color:#E8A33D; margin-top:-12px;'>{stock_label}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; font-family:Space Grotesk,sans-serif; font-size:0.95rem; color:#E8A33D; margin-top:-12px;'>{stock_label}</div>", unsafe_allow_html=True)
 with fg2:
     gauge = create_fear_greed_gauge(crypto_score, "CRYPTO FEAR & GREED")
     if gauge:
         st.plotly_chart(gauge, use_container_width=True, config={"displayModeBar": False})
         if crypto_label:
-            st.markdown(f"<div style='text-align:center; font-family:Space Grotesk; font-size:0.95rem; color:#E8A33D; margin-top:-12px;'>{crypto_label}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; font-family:Space Grotesk,sans-serif; font-size:0.95rem; color:#E8A33D; margin-top:-12px;'>{crypto_label}</div>", unsafe_allow_html=True)
 
 # Heatmap
 st.markdown('<div class="section-label">Market Heatmap</div>', unsafe_allow_html=True)
@@ -646,7 +666,7 @@ else:
                 <div class="metric-value">{f"{btc_per_share:.6f}"}</div>
             </div>""", unsafe_allow_html=True)
         with b4:
-            main, unit = format_large_number(btc_value)
+            main, unit = format_large_number(btc_value, show_dollar=True)
             st.markdown(f"""
             <div class="btc-card" title="Market value of all Bitcoin held.">
                 <div class="btc-label">BTC Value</div>
@@ -725,12 +745,11 @@ else:
     if data.get("free_cashflow") and shares and shares > 0:
         fair_value_oe = (data["free_cashflow"] * 15) / shares
 
-    # Prefer Owner Earnings if available, otherwise P/E method
     fair_value = fair_value_oe or fair_value_pe
 
-    def card(title, value, status, suffix="", raw_value=None, tooltip=""):
+    def card(title, value, status, suffix="", raw_value=None, tooltip="", is_money=False):
         if raw_value is not None:
-            main, unit = format_large_number(raw_value)
+            main, unit = format_large_number(raw_value, show_dollar=is_money)
             display_value = main
             unit_html = f'<span style="font-size:0.68rem; color:#7C8494; margin-left:5px;">{unit}</span>' if unit else ""
         else:
@@ -766,15 +785,15 @@ else:
 
     with col3:
         st.markdown('<div class="section-label">Balance & Cash</div>', unsafe_allow_html=True)
-        card("Market Cap", "", "gray", raw_value=data.get("market_cap"), tooltip="Total market value")
-        card("Cash & Equivalents", "", "gray", raw_value=data.get("total_cash"), tooltip="Cash + short-term investments")
+        card("Market Cap", "", "gray", raw_value=data.get("market_cap"), tooltip="Total market value", is_money=True)
+        card("Cash & Equivalents", "", "gray", raw_value=data.get("total_cash"), tooltip="Cash + short-term investments", is_money=True)
         net = data.get("net_cash")
         if net is not None:
             card("Net Cash" if net >= 0 else "Net Debt", "", "green" if net >= 0 else "orange",
-                 raw_value=abs(net), tooltip="Cash minus total debt")
+                 raw_value=abs(net), tooltip="Cash minus total debt", is_money=True)
         else:
             card("Net Cash / Debt", "—", "gray")
-        card("Free Cash Flow", "", "gray", raw_value=data.get("free_cashflow"), tooltip="Cash after capex")
+        card("Free Cash Flow", "", "gray", raw_value=data.get("free_cashflow"), tooltip="Cash after capex", is_money=True)
 
     st.markdown('<div class="section-label">Fair Value Estimates</div>', unsafe_allow_html=True)
     fv1, fv2 = st.columns(2)
@@ -801,47 +820,38 @@ else:
     st.markdown(f"""
     <div class="signal-banner {cls}">
         <span>{label}</span>
-        <span style="font-family:'IBM Plex Mono'; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
     </div>""", unsafe_allow_html=True)
 
-    # ========== FAIR VALUE ICEBERG CHART (restored) ==========
+    # Fair Value Iceberg Chart
     if fair_value and price_usd:
         st.markdown('<div class="section-label">Fair Value Chart</div>', unsafe_allow_html=True)
         try:
             hist = yf.Ticker(ticker).history(period="2y")
             if not hist.empty:
                 fig = go.Figure()
-
-                # Green zone (below fair value)
                 fig.add_trace(go.Scatter(
                     x=list(hist.index) + list(hist.index[::-1]),
                     y=list(np.minimum(hist["Close"], fair_value)) + [fair_value] * len(hist),
                     fill="toself", fillcolor="rgba(62,207,142,0.18)", line=dict(width=0),
                     name="Below Fair Value", hoverinfo="skip"
                 ))
-
-                # Red zone (above fair value)
                 fig.add_trace(go.Scatter(
                     x=list(hist.index) + list(hist.index[::-1]),
                     y=list(np.maximum(hist["Close"], fair_value)) + [fair_value] * len(hist),
                     fill="toself", fillcolor="rgba(255,107,107,0.14)", line=dict(width=0),
                     name="Above Fair Value", hoverinfo="skip"
                 ))
-
-                # Price line
                 fig.add_trace(go.Scatter(
                     x=hist.index, y=hist["Close"], mode="lines", name="Price",
                     line=dict(color="#7DD8FF", width=2.2)
                 ))
-
-                # Fair value line
                 fig.add_hline(
                     y=fair_value, line_dash="dash", line_color="#E8A33D", line_width=1.6,
                     annotation_text=f"Fair Value ${fair_value:.0f}",
                     annotation_position="top left",
                     annotation_font_color="#E8A33D"
                 )
-
                 fig.update_layout(
                     height=460, template="plotly_dark",
                     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -863,13 +873,13 @@ else:
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            main, unit = format_large_number(latest_rev)
+            main, unit = format_large_number(latest_rev, show_dollar=True)
             st.metric("Latest Revenue", f"{main} {unit}")
         with c2:
-            main, unit = format_large_number(min_rev)
+            main, unit = format_large_number(min_rev, show_dollar=True)
             st.metric("Min (period)", f"{main} {unit}")
         with c3:
-            main, unit = format_large_number(max_rev)
+            main, unit = format_large_number(max_rev, show_dollar=True)
             st.metric("Max (period)", f"{main} {unit}")
         with c4:
             if latest_rev and min_rev and min_rev > 0:
@@ -884,3 +894,4 @@ else:
         for name, pct in holders[:8]:
             st.markdown(f'<div class="holder-row"><span>{name}</span><span style="color:#E8A33D;">{pct}</span></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
