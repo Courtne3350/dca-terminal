@@ -22,8 +22,8 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 .stApp { background: #0A0C10; color: #EDEFF3; font-family: 'Inter', sans-serif; }
-h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #EDEFF3 !important; }
-.metric-value, .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+h1, h2, h3, h4, p, span, label, div { font-family: 'Inter', sans-serif !important; }
+.metric-value, .mono, code { font-family: 'IBM Plex Mono', monospace !important; font-variant-numeric: tabular-nums; }
 
 .ticker-wrap {
     background: linear-gradient(90deg, #0d1117, #12151b, #0d1117);
@@ -44,9 +44,9 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #ED
 .term-sub { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: #7C8494; }
 
 .ticker-bar { background: linear-gradient(180deg, #171b23, #12151b); border: 1px solid #232833; border-left: 3px solid #E8A33D; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.ticker-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 600; }
+.ticker-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 600; color: #EDEFF3; }
 .ticker-meta { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: #7C8494; margin-top: 3px; }
-.ticker-price { font-family: 'IBM Plex Mono', monospace; font-size: 1.7rem; font-weight: 600; cursor: help; }
+.ticker-price { font-family: 'IBM Plex Mono', monospace; font-size: 1.7rem; font-weight: 600; cursor: help; color: #EDEFF3; }
 
 .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: #7C8494; border-bottom: 1px solid #232833; padding-bottom: 7px; margin: 8px 0 14px 0; }
 
@@ -59,9 +59,9 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #ED
 .metric-card.status-red { border-color: #FF6B6B; box-shadow: 0 0 0 1px rgba(255,107,107,0.45), 0 0 12px rgba(255,107,107,0.25); }
 .metric-card.status-gray { border-color: #4B5160; }
 
-.metric-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.metric-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
 .metric-row { display: flex; justify-content: space-between; align-items: baseline; }
-.metric-value { font-size: 1.45rem; font-weight: 600; color: #EDEFF3; }
+.metric-value { font-size: 1.45rem; font-weight: 600; color: #EDEFF3; font-family: 'IBM Plex Mono', monospace; }
 .status { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 5px; }
 .status-green { color: #3ECF8E; background: rgba(62,207,142,0.12); }
 .status-red { color: #FF6B6B; background: rgba(255,107,107,0.12); }
@@ -69,7 +69,7 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #ED
 .status-gray { color: #7C8494; background: rgba(75,81,96,0.15); }
 
 .fv-card { background: linear-gradient(165deg, #171b23, #12151b); border: 1px solid #232833; border-left: 3px solid #E8A33D; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
-.fv-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.fv-label { color: #7C8494; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
 .fv-value { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 600; color: #E8A33D; }
 .fv-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: #7C8494; margin-top: 4px; }
 
@@ -80,7 +80,7 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #ED
     min-height: 110px; display: flex; flex-direction: column; justify-content: space-between;
     cursor: help;
 }
-.btc-label { color: #E8A33D; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.btc-label { color: #E8A33D; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
 
 .desc-box {
     background: #12151b; border: 1px solid #232833; border-radius: 10px;
@@ -118,15 +118,10 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; color: #ED
 .peer-table tr:last-child td { border-bottom: none; }
 .peer-table tr:hover td { background: #1a1e27; }
 
-/* Make radio / toggle text more readable */
-div[data-testid="stRadio"] label {
-    color: #EDEFF3 !important;
-    font-size: 0.95rem !important;
-    font-family: 'Space Grotesk', sans-serif !important;
-}
 div[data-testid="stRadio"] label p {
     color: #EDEFF3 !important;
     font-size: 0.95rem !important;
+    font-family: 'Space Grotesk', sans-serif !important;
 }
 
 section[data-testid="stSidebar"] { background: #12151b !important; border-right: 1px solid #232833; }
@@ -216,8 +211,7 @@ def fetch_heatmap_item(symbol):
     try:
         t = yf.Ticker(symbol)
         hist = t.history(period="5d")
-        if hist.empty or len(hist) < 2:
-            return None
+        if hist.empty or len(hist) < 2: return None
         last = hist["Close"].iloc[-1]
         prev = hist["Close"].iloc[-2]
         chg = ((last - prev) / prev) * 100
@@ -225,8 +219,7 @@ def fetch_heatmap_item(symbol):
         mcap = info.get("marketCap") or 1e9
         name = symbol.replace("-USD", "")
         return {"symbol": symbol, "name": name, "change": chg, "market_cap": mcap, "price": last}
-    except:
-        return None
+    except: return None
 
 @st.cache_data(ttl=300)
 def get_heatmap_data(mode="sp"):
@@ -236,38 +229,30 @@ def get_heatmap_data(mode="sp"):
     return [r for r in results if r]
 
 def create_heatmap(data, title):
-    if not data:
-        return None
+    if not data: return None
     df = pd.DataFrame(data)
     df["label"] = df.apply(lambda r: f"{r['name']}<br>{r['change']:+.0f}%", axis=1)
 
     fig = px.treemap(
-        df,
-        path=["name"],
-        values="market_cap",                    # ← size by Market Cap
-        color="change",                         # ← color by 1-day % change
+        df, path=["name"], values="market_cap", color="change",
         color_continuous_scale=["#FF4D4D", "#2A2F3A", "#3ECF8E"],
         color_continuous_midpoint=0,
     )
     fig.update_traces(
         texttemplate="%{label}",
         textfont=dict(size=15, family="IBM Plex Mono", color="#FFFFFF"),
-        hovertemplate="<b>%{label}</b><br>Market Cap based size<extra></extra>",
+        hovertemplate="<b>%{label}</b><extra></extra>",
         marker=dict(line=dict(width=2, color="#0A0C10")),
         textposition="middle center"
     )
     fig.update_layout(
         title=dict(text=title, font=dict(size=15, color="#EDEFF3", family="Space Grotesk")),
-        height=440,
-        margin=dict(t=55, b=20, l=10, r=10),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        height=440, margin=dict(t=55, b=20, l=10, r=10),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#EDEFF3", family="IBM Plex Mono"),
         coloraxis_colorbar=dict(
             title=dict(text="1-Day % Change", font=dict(color="#7C8494", size=12)),
-            tickfont=dict(color="#7C8494", size=11),
-            thickness=14,
-            len=0.65
+            tickfont=dict(color="#7C8494", size=11), thickness=14, len=0.65
         )
     )
     return fig
@@ -278,8 +263,7 @@ def get_crypto_fear_greed():
         r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=8).json()
         d = r["data"][0]
         return int(d["value"]), d["value_classification"]
-    except:
-        return None, None
+    except: return None, None
 
 @st.cache_data(ttl=600)
 def get_stock_fear_greed():
@@ -292,12 +276,10 @@ def get_stock_fear_greed():
         elif score <= 80: label = "Greed"
         else: label = "Extreme Greed"
         return score, label + " (VIX proxy)"
-    except:
-        return None, None
+    except: return None, None
 
 def create_fear_greed_gauge(score, title):
-    if score is None:
-        return None
+    if score is None: return None
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=score,
         domain={'x': [0.05, 0.95], 'y': [0.05, 0.85]},
@@ -334,15 +316,13 @@ def get_revenue_and_price(ticker):
                     rev = item.get("revenue")
                     if date and rev is not None:
                         revenue_data.append({"date": date, "revenue": rev})
-        except:
-            pass
+        except: pass
     try:
         hist = yf.Ticker(ticker).history(period="5y")
         if not hist.empty:
             price_data = hist[["Close"]].reset_index()
             price_data.columns = ["date", "price"]
-    except:
-        pass
+    except: pass
     return revenue_data, price_data
 
 def create_revenue_price_chart(revenue_data, price_data, ticker):
@@ -368,37 +348,25 @@ def create_revenue_price_chart(revenue_data, price_data, ticker):
 
 def resolve(text):
     t = text.strip().lower()
-    if t in NAME_MAP:
-        return NAME_MAP[t]
-    if t.isdigit() and len(t) in (3, 4):
-        return t + ".T"
+    if t in NAME_MAP: return NAME_MAP[t]
+    if t.isdigit() and len(t) in (3, 4): return t + ".T"
     return text.strip().upper()
 
 def format_large_number(val):
-    if val is None:
-        return "—", ""
-    try:
-        v = float(val)
-    except:
-        return "—", ""
+    if val is None: return "—", ""
+    try: v = float(val)
+    except: return "—", ""
     abs_v = abs(v)
-    if abs_v >= 1e12:
-        return f"{v/1e12:.2f}", "trillion"
-    elif abs_v >= 1e9:
-        return f"{v/1e9:.2f}", "billion"
-    elif abs_v >= 1e6:
-        return f"{v/1e6:.2f}", "million"
-    elif abs_v >= 1e3:
-        return f"{v:,.1f}", ""
+    if abs_v >= 1e12: return f"{v/1e12:.2f}", "trillion"
+    elif abs_v >= 1e9: return f"{v/1e9:.2f}", "billion"
+    elif abs_v >= 1e6: return f"{v/1e6:.2f}", "million"
+    elif abs_v >= 1e3: return f"{v:,.1f}", ""
     return f"{v:.2f}", ""
 
 def get_status(val, good, ok=None, reverse=False, pct=False):
-    if val is None:
-        return "gray", "—"
-    try:
-        v = float(val)
-    except:
-        return "gray", "—"
+    if val is None: return "gray", "—"
+    try: v = float(val)
+    except: return "gray", "—"
     if reverse:
         status = "green" if v <= good else ("orange" if ok and v <= ok else "red")
     else:
@@ -407,25 +375,19 @@ def get_status(val, good, ok=None, reverse=False, pct=False):
     return status, display
 
 def get_btc_price():
-    try:
-        return yf.Ticker("BTC-USD").info.get("regularMarketPrice")
-    except:
-        return None
+    try: return yf.Ticker("BTC-USD").info.get("regularMarketPrice")
+    except: return None
 
 def get_shares_outstanding(ticker):
-    try:
-        return yf.Ticker(ticker).info.get("sharesOutstanding")
-    except:
-        return None
+    try: return yf.Ticker(ticker).info.get("sharesOutstanding")
+    except: return None
 
 def get_fx_rate(currency):
-    if not currency or currency.upper() == "USD":
-        return 1.0
+    if not currency or currency.upper() == "USD": return 1.0
     try:
         rate = yf.Ticker(f"{currency.upper()}=X").info.get("regularMarketPrice")
         return float(rate) if rate and rate > 0 else 1.0
-    except:
-        return 1.0
+    except: return 1.0
 
 def get_company_extra(ticker):
     summary, holders = None, []
@@ -439,8 +401,7 @@ def get_company_extra(ticker):
                 pct = row.get("% Out") or row.get("pctOut")
                 pct_str = f"{float(pct)*100:.1f}%" if pct and float(pct) < 1 else (f"{float(pct):.1f}%" if pct else "—")
                 holders.append((str(name), pct_str))
-    except:
-        pass
+    except: pass
     return summary, holders
 
 def get_data(ticker):
@@ -470,23 +431,26 @@ def get_data(ticker):
         data["free_cashflow"] = info.get("freeCashflow")
         data["total_cash"] = info.get("totalCash")
         data["total_debt"] = info.get("totalDebt")
-        data["currency"] = info.get("currency") or "USD"
-    except:
-        pass
+        data["currency"] = (info.get("currency") or "USD").upper()
+    except: pass
 
     data["original_price"] = data["current_price"]
 
-    # Force conversion for Japanese stocks
-    if ticker.endswith(".T") or data.get("currency") == "JPY":
+    # ========== STRONG FORCE CONVERSION ==========
+    is_japanese = ticker.endswith(".T") or data["currency"] in ["JPY", "¥"]
+    if is_japanese:
         fx = get_fx_rate("JPY")
         if data["current_price"]:
             data["price_usd"] = data["current_price"] * fx
             data["currency"] = "JPY"
-        if data.get("market_cap") and data["market_cap"] > 1e12:
+        if data.get("market_cap") and data["market_cap"] > 5e11:  # likely still in JPY
             data["market_cap"] = data["market_cap"] * fx
     else:
         fx = get_fx_rate(data["currency"])
-        data["price_usd"] = data["current_price"] * fx if data["current_price"] and data["currency"] != "USD" else data["current_price"]
+        if data["current_price"] and data["currency"] != "USD":
+            data["price_usd"] = data["current_price"] * fx
+        else:
+            data["price_usd"] = data["current_price"]
 
     if data["total_cash"] is not None and data["total_debt"] is not None:
         data["net_cash"] = data["total_cash"] - data["total_debt"]
@@ -513,22 +477,18 @@ def get_peer_metrics(tickers, btc_price):
                 "FCF Yield": f"{fcf_y*100:.1f}%" if fcf_y is not None else "—",
                 "Fwd P/E": f"{pe:.1f}" if pe else "—",
             })
-        except:
-            continue
+        except: continue
     return rows
 
 def render_peer_table(rows):
-    if not rows:
-        return
+    if not rows: return
     html = ['<table class="peer-table"><thead><tr>']
     headers = ["Ticker", "Price", "mNAV", "BTC Holdings", "FCF Yield", "Fwd P/E"]
-    for h in headers:
-        html.append(f"<th>{h}</th>")
+    for h in headers: html.append(f"<th>{h}</th>")
     html.append("</tr></thead><tbody>")
     for r in rows:
         html.append("<tr>")
-        for key in headers:
-            html.append(f"<td>{r.get(key, '—')}</td>")
+        for key in headers: html.append(f"<td>{r.get(key, '—')}</td>")
         html.append("</tr>")
     html.append("</tbody></table>")
     st.markdown("".join(html), unsafe_allow_html=True)
@@ -578,13 +538,7 @@ with fg2:
 
 # Heatmap
 st.markdown('<div class="section-label">Market Heatmap</div>', unsafe_allow_html=True)
-heatmap_mode = st.radio(
-    "Select view",
-    ["S&P Top 20 + Sectors", "Crypto"],
-    horizontal=True,
-    label_visibility="visible",
-    key="heatmap_mode"
-)
+heatmap_mode = st.radio("Select view", ["S&P Top 20 + Sectors", "Crypto"], horizontal=True, key="heatmap_mode")
 hm_data = get_heatmap_data("sp" if heatmap_mode.startswith("S&P") else "crypto")
 fig = create_heatmap(hm_data, f"{heatmap_mode} — Size by Market Cap · Color by 1-Day % Change")
 if fig:
@@ -752,7 +706,6 @@ else:
             st.markdown('<div class="section-label">Peer Comparison (Bitcoin Treasury)</div>', unsafe_allow_html=True)
             peer_rows = get_peer_metrics([ticker] + peers, btc_price)
             render_peer_table(peer_rows)
-
             st.markdown("<br>", unsafe_allow_html=True)
             st.caption("Click a ticker to analyze:")
             cols = st.columns(len([ticker] + peers))
@@ -762,7 +715,7 @@ else:
                         st.session_state.selected_ticker = p
                         st.rerun()
 
-    # Metrics
+    # Metrics + Fair Values
     fair_value_pe = None
     if data.get("forward_pe") and data.get("price_usd") and data["forward_pe"] > 0:
         fair_value_pe = data["price_usd"] * (18 / data["forward_pe"])
@@ -771,6 +724,9 @@ else:
     shares = get_shares_outstanding(ticker)
     if data.get("free_cashflow") and shares and shares > 0:
         fair_value_oe = (data["free_cashflow"] * 15) / shares
+
+    # Prefer Owner Earnings if available, otherwise P/E method
+    fair_value = fair_value_oe or fair_value_pe
 
     def card(title, value, status, suffix="", raw_value=None, tooltip=""):
         if raw_value is not None:
@@ -847,6 +803,55 @@ else:
         <span>{label}</span>
         <span style="font-family:'IBM Plex Mono'; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
     </div>""", unsafe_allow_html=True)
+
+    # ========== FAIR VALUE ICEBERG CHART (restored) ==========
+    if fair_value and price_usd:
+        st.markdown('<div class="section-label">Fair Value Chart</div>', unsafe_allow_html=True)
+        try:
+            hist = yf.Ticker(ticker).history(period="2y")
+            if not hist.empty:
+                fig = go.Figure()
+
+                # Green zone (below fair value)
+                fig.add_trace(go.Scatter(
+                    x=list(hist.index) + list(hist.index[::-1]),
+                    y=list(np.minimum(hist["Close"], fair_value)) + [fair_value] * len(hist),
+                    fill="toself", fillcolor="rgba(62,207,142,0.18)", line=dict(width=0),
+                    name="Below Fair Value", hoverinfo="skip"
+                ))
+
+                # Red zone (above fair value)
+                fig.add_trace(go.Scatter(
+                    x=list(hist.index) + list(hist.index[::-1]),
+                    y=list(np.maximum(hist["Close"], fair_value)) + [fair_value] * len(hist),
+                    fill="toself", fillcolor="rgba(255,107,107,0.14)", line=dict(width=0),
+                    name="Above Fair Value", hoverinfo="skip"
+                ))
+
+                # Price line
+                fig.add_trace(go.Scatter(
+                    x=hist.index, y=hist["Close"], mode="lines", name="Price",
+                    line=dict(color="#7DD8FF", width=2.2)
+                ))
+
+                # Fair value line
+                fig.add_hline(
+                    y=fair_value, line_dash="dash", line_color="#E8A33D", line_width=1.6,
+                    annotation_text=f"Fair Value ${fair_value:.0f}",
+                    annotation_position="top left",
+                    annotation_font_color="#E8A33D"
+                )
+
+                fig.update_layout(
+                    height=460, template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(t=30, b=20),
+                    legend=dict(orientation="h", y=1.1, font=dict(color="#EDEFF3")),
+                    font=dict(color="#EDEFF3", family="IBM Plex Mono")
+                )
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        except:
+            st.info("Fair value chart not available")
 
     # Revenue vs Price
     st.markdown('<div class="section-label">Revenue vs Stock Price</div>', unsafe_allow_html=True)
