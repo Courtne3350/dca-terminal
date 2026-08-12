@@ -14,7 +14,6 @@ FMP_API_KEY = st.secrets.get("FMP_API_KEY", "")
 
 st.set_page_config(page_title="DCA Terminal", page_icon="◆", layout="wide")
 
-# ---------- Session State ----------
 if "selected_ticker" not in st.session_state:
     st.session_state.selected_ticker = "MSTR"
 
@@ -223,8 +222,9 @@ def get_heatmap_data(mode="sp"):
 def create_heatmap(data, title):
     if not data: return None
     df = pd.DataFrame(data)
-    df["abs_change"] = df["change"].abs().clip(lower=0.2)
-    df["label"] = df.apply(lambda r: f"{r['name']}<br>{r['change']:+.1f}%", axis=1)
+    df["abs_change"] = df["change"].abs().clip(lower=0.3)
+    # Clean label with no decimals
+    df["label"] = df.apply(lambda r: f"{r['name']}<br>{r['change']:+.0f}%", axis=1)
 
     fig = px.treemap(
         df,
@@ -233,12 +233,11 @@ def create_heatmap(data, title):
         color="change",
         color_continuous_scale=["#FF4D4D", "#2A2F3A", "#3ECF8E"],
         color_continuous_midpoint=0,
-        custom_data=["change", "name"]
     )
     fig.update_traces(
-        texttemplate="%{customdata[1]}<br>%{color:+.1f}%",
+        texttemplate="%{label}",
         textfont=dict(size=15, family="IBM Plex Mono", color="#FFFFFF"),
-        hovertemplate="<b>%{customdata[1]}</b><br>1-Day Change: %{color:+.2f}%<extra></extra>",
+        hovertemplate="<b>%{label}</b><extra></extra>",
         marker=dict(line=dict(width=2, color="#0A0C10")),
         textposition="middle center"
     )
@@ -388,7 +387,7 @@ def get_fx_rate(currency):
     if not currency or currency.upper() == "USD": return 1.0
     try:
         rate = yf.Ticker(f"{currency.upper()}=X").info.get("regularMarketPrice")
-        return float(rate) if rate else 1.0
+        return float(rate) if rate and rate > 0 else 1.0
     except: return 1.0
 
 def get_company_extra(ticker):
@@ -434,12 +433,18 @@ def get_data(ticker):
 
     data["original_price"] = data["current_price"]
     fx = get_fx_rate(data["currency"])
-    data["price_usd"] = data["current_price"] * fx if data["current_price"] and data["currency"] != "USD" else data["current_price"]
 
-    # Special fix for Japanese stocks: yfinance marketCap is often already in USD, but price is in JPY
-    if data["currency"] == "JPY" and data.get("market_cap") and data.get("price_usd"):
-        # Keep market_cap as is (usually correct in USD from yfinance)
-        pass
+    # Convert price to USD
+    if data["current_price"] and data["currency"] != "USD":
+        data["price_usd"] = data["current_price"] * fx
+    else:
+        data["price_usd"] = data["current_price"]
+
+    # For Japanese stocks, yfinance marketCap is often already in USD
+    # but if it looks like JPY (very large), convert it
+    if data["currency"] == "JPY" and data.get("market_cap"):
+        if data["market_cap"] > 1e12:  # likely in JPY
+            data["market_cap"] = data["market_cap"] * fx
 
     if data["total_cash"] is not None and data["total_debt"] is not None:
         data["net_cash"] = data["total_cash"] - data["total_debt"]
@@ -511,7 +516,6 @@ market_data = get_market_snapshot()
 if market_data:
     st.markdown(build_ticker_html(market_data), unsafe_allow_html=True)
 
-# Fear & Greed
 stock_score, stock_label = get_stock_fear_greed()
 crypto_score, crypto_label = get_crypto_fear_greed()
 fg1, fg2 = st.columns(2)
@@ -528,7 +532,6 @@ with fg2:
         if crypto_label:
             st.markdown(f"<div style='text-align:center; font-family:Space Grotesk; font-size:0.95rem; color:#E8A33D; margin-top:-12px;'>{crypto_label}</div>", unsafe_allow_html=True)
 
-# Heatmap
 st.markdown('<div class="section-label">Market Heatmap</div>', unsafe_allow_html=True)
 heatmap_mode = st.radio("View", ["S&P Top 20 + Sectors", "Crypto"], horizontal=True, label_visibility="collapsed", key="heatmap_mode")
 hm_data = get_heatmap_data("sp" if heatmap_mode.startswith("S&P") else "crypto")
@@ -560,7 +563,7 @@ if FMP_API_KEY:
 else:
     st.sidebar.info("No FMP key → limited revenue data")
 
-# ---------- MAIN ANALYSIS ----------
+# ---------- MAIN ----------
 ticker = st.session_state.selected_ticker
 data = get_data(ticker)
 summary, holders = get_company_extra(ticker)
@@ -591,7 +594,6 @@ else:
         <div class="desc-box" data-full="{full_escaped}">{short}</div>
         """, unsafe_allow_html=True)
 
-    # ========== BITCOIN TREASURY ==========
     btc_price = custom_btc_price if custom_btc_price > 0 else live_btc
     btc_holdings = btc_holdings_input if btc_holdings_input > 0 else KNOWN_BTC_HOLDINGS.get(ticker)
     market_cap = data.get("market_cap")
@@ -619,28 +621,28 @@ else:
         b1, b2, b3, b4 = st.columns(4)
         with b1:
             st.markdown(f"""
-            <div class="btc-card" title="Market Cap ÷ Current BTC Holdings Value. Below 1.0x = trading at a discount to the Bitcoin it holds.">
+            <div class="btc-card" title="Market Cap ÷ BTC Holdings Value. Below 1.0x = discount to Bitcoin held.">
                 <div class="btc-label">Current mNAV</div>
                 <div class="metric-value">{f"{mnav:.2f}x" if mnav else "—"}</div>
                 <div class="status status-{mnav_status}">{mnav_status.upper()}</div>
             </div>""", unsafe_allow_html=True)
         with b2:
             st.markdown(f"""
-            <div class="btc-card" title="Total Bitcoin currently held by the company.">
+            <div class="btc-card" title="Total Bitcoin held by the company.">
                 <div class="btc-label">BTC Holdings</div>
                 <div class="metric-value">{btc_holdings:,.0f}</div>
                 <div style="font-size:0.72rem; color:#7C8494;">{source_note}</div>
             </div>""", unsafe_allow_html=True)
         with b3:
             st.markdown(f"""
-            <div class="btc-card" title="Bitcoin held per share outstanding.">
+            <div class="btc-card" title="Bitcoin held per share.">
                 <div class="btc-label">BTC per Share</div>
                 <div class="metric-value">{f"{btc_per_share:.6f}"}</div>
             </div>""", unsafe_allow_html=True)
         with b4:
             main, unit = format_large_number(btc_value)
             st.markdown(f"""
-            <div class="btc-card" title="Current market value of all Bitcoin held.">
+            <div class="btc-card" title="Market value of all Bitcoin held.">
                 <div class="btc-label">BTC Value</div>
                 <div class="metric-value">{main} <span style="font-size:0.68rem; color:#7C8494;">{unit}</span></div>
                 <div style="font-size:0.72rem; color:#7C8494;">@ ${btc_price:,.0f}</div>
@@ -651,7 +653,7 @@ else:
             c1, c2, c3, c4 = st.columns(4)
             with c1:
                 st.markdown(f"""
-                <div class="btc-card" title="Sats of Bitcoin belonging to common shareholders after senior claims.">
+                <div class="btc-card" title="Sats belonging to common shareholders after senior claims.">
                     <div class="btc-label">CEBE</div>
                     <div class="metric-value">{cebe_sats:,.0f}</div>
                     <div style="font-size:0.72rem; color:#7C8494;">sats / share</div>
@@ -659,21 +661,21 @@ else:
             with c2:
                 status = "green" if cebe_mnav and cebe_mnav < 1.1 else ("orange" if cebe_mnav and cebe_mnav < 1.5 else "red")
                 st.markdown(f"""
-                <div class="btc-card" title="More accurate mNAV after subtracting senior claims.">
+                <div class="btc-card" title="More accurate mNAV after senior claims.">
                     <div class="btc-label">CEBE mNAV</div>
                     <div class="metric-value">{f"{cebe_mnav:.2f}x" if cebe_mnav else "—"}</div>
                     <div class="status status-{status}">{status.upper()}</div>
                 </div>""", unsafe_allow_html=True)
             with c3:
                 st.markdown(f"""
-                <div class="btc-card" title="% of Bitcoin effectively claimed by debt / preferred.">
+                <div class="btc-card" title="% of Bitcoin claimed by debt / preferred.">
                     <div class="btc-label">Claims %</div>
                     <div class="metric-value">{f"{claims_pct:.1f}%"}</div>
                 </div>""", unsafe_allow_html=True)
             with c4:
                 sats_per_100 = (cebe_sats / data["price_usd"] * 100) if data.get("price_usd") else None
                 st.markdown(f"""
-                <div class="btc-card" title="Sats of real common-equity Bitcoin per $100 invested.">
+                <div class="btc-card" title="Sats of common-equity Bitcoin per $100 invested.">
                     <div class="btc-label">Sats / $100</div>
                     <div class="metric-value">{f"{sats_per_100:,.0f}" if sats_per_100 else "—"}</div>
                 </div>""", unsafe_allow_html=True)
@@ -693,7 +695,6 @@ else:
                     <div class="metric-value">${price:,.2f}</div>
                 </div>""", unsafe_allow_html=True)
 
-        # Peer Comparison + Working Buttons
         peers = PEER_GROUPS.get(ticker, [])
         if peers:
             st.markdown('<div class="section-label">Peer Comparison (Bitcoin Treasury)</div>', unsafe_allow_html=True)
@@ -709,7 +710,7 @@ else:
                         st.session_state.selected_ticker = p
                         st.rerun()
 
-    # ========== METRICS ==========
+    # Metrics
     fair_value_pe = None
     if data.get("forward_pe") and data.get("price_usd") and data["forward_pe"] > 0:
         fair_value_pe = data["price_usd"] * (18 / data["forward_pe"])
@@ -740,39 +741,39 @@ else:
     with col1:
         st.markdown('<div class="section-label">Valuation</div>', unsafe_allow_html=True)
         s, v = get_status(data.get("forward_pe"), 18, 25, reverse=True)
-        card("Forward P/E", v, s, tooltip="Price ÷ expected future earnings. Lower is generally cheaper.")
+        card("Forward P/E", v, s, tooltip="Price ÷ expected future earnings")
         s, v = get_status(data.get("ev_ebitda"), 12, 16, reverse=True)
-        card("EV / EBITDA", v, s, tooltip="Enterprise Value ÷ EBITDA.")
+        card("EV / EBITDA", v, s, tooltip="Enterprise Value ÷ EBITDA")
         s, v = get_status(data.get("fcf_yield"), 0.04, 0.03, pct=True)
-        card("FCF Yield", v, s, suffix="%", tooltip="Free Cash Flow ÷ Market Cap.")
+        card("FCF Yield", v, s, suffix="%", tooltip="Free Cash Flow ÷ Market Cap")
 
     with col2:
         st.markdown('<div class="section-label">Quality</div>', unsafe_allow_html=True)
         s, v = get_status(data.get("roe"), 0.12, 0.08, pct=True)
-        card("ROE", v, s, suffix="%", tooltip="Return on Equity.")
+        card("ROE", v, s, suffix="%", tooltip="Return on Equity")
         s, v = get_status(data.get("operating_margin"), 0.15, 0.08, pct=True)
-        card("Operating Margin", v, s, suffix="%", tooltip="Operating income ÷ Revenue.")
+        card("Operating Margin", v, s, suffix="%", tooltip="Operating income ÷ Revenue")
         s, v = get_status(data.get("gross_margin"), 0.30, 0.20, pct=True)
-        card("Gross Margin", v, s, suffix="%", tooltip="Gross profit ÷ Revenue.")
+        card("Gross Margin", v, s, suffix="%", tooltip="Gross profit ÷ Revenue")
 
     with col3:
         st.markdown('<div class="section-label">Balance & Cash</div>', unsafe_allow_html=True)
-        card("Market Cap", "", "gray", raw_value=data.get("market_cap"), tooltip="Total market value of all shares.")
-        card("Cash & Equivalents", "", "gray", raw_value=data.get("total_cash"), tooltip="Cash + short-term investments.")
+        card("Market Cap", "", "gray", raw_value=data.get("market_cap"), tooltip="Total market value")
+        card("Cash & Equivalents", "", "gray", raw_value=data.get("total_cash"), tooltip="Cash + short-term investments")
         net = data.get("net_cash")
         if net is not None:
             card("Net Cash" if net >= 0 else "Net Debt", "", "green" if net >= 0 else "orange",
-                 raw_value=abs(net), tooltip="Cash minus total debt.")
+                 raw_value=abs(net), tooltip="Cash minus total debt")
         else:
             card("Net Cash / Debt", "—", "gray")
-        card("Free Cash Flow", "", "gray", raw_value=data.get("free_cashflow"), tooltip="Cash after capital expenditures.")
+        card("Free Cash Flow", "", "gray", raw_value=data.get("free_cashflow"), tooltip="Cash after capex")
 
     st.markdown('<div class="section-label">Fair Value Estimates</div>', unsafe_allow_html=True)
     fv1, fv2 = st.columns(2)
     with fv1:
         if fair_value_pe:
             st.markdown(f"""
-            <div class="fv-card" title="Simple fair value using target forward P/E of 18">
+            <div class="fv-card" title="Target forward P/E of 18">
                 <div class="fv-label">P/E Method (target 18×)</div>
                 <div class="fv-value">${fair_value_pe:.1f}</div>
                 <div class="fv-note">Simple earnings multiple</div>
@@ -780,7 +781,7 @@ else:
     with fv2:
         if fair_value_oe:
             st.markdown(f"""
-            <div class="fv-card" title="Owner Earnings: Free Cash Flow × 15">
+            <div class="fv-card" title="Free Cash Flow × 15">
                 <div class="fv-label">Owner Earnings (15× FCF)</div>
                 <div class="fv-value">${fair_value_oe:.1f}</div>
                 <div class="fv-note">More conservative cash-flow based</div>
@@ -795,7 +796,6 @@ else:
         <span style="font-family:'IBM Plex Mono'; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
     </div>""", unsafe_allow_html=True)
 
-    # Revenue vs Price
     st.markdown('<div class="section-label">Revenue vs Stock Price</div>', unsafe_allow_html=True)
     with st.spinner("Loading revenue data..."):
         rev_data, price_data = get_revenue_and_price(ticker)
@@ -826,4 +826,3 @@ else:
         for name, pct in holders[:8]:
             st.markdown(f'<div class="holder-row"><span>{name}</span><span style="color:#E8A33D;">{pct}</span></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-
