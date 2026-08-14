@@ -160,14 +160,26 @@ TOP_CRYPTOS = ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD", "BNB-USD", "ADA-USD",
                "AVAX-USD", "DOT-USD", "LINK-USD", "MATIC-USD", "LTC-USD", "ATOM-USD", "NEAR-USD"]
 
 NAME_MAP = {
+    # Bitcoin Treasury
     "strategy": "MSTR", "microstrategy": "MSTR", "mstr": "MSTR",
     "metaplanet": "3350.T", "twenty one": "XXI", "strive": "ASST",
     "marathon": "MARA", "bullish": "BLSH", "riot": "RIOT", "cleanspark": "CLSK",
-    "tesla": "TSLA", "hut 8": "HUT", "block": "XYZ", "coinbase": "COIN",
-    "trump media": "DJT", "galaxy": "GLXY", "gamestop": "GME", "nakamoto": "NAKA",
+    "hut 8": "HUT", "block": "XYZ", "coinbase": "COIN", "trump media": "DJT",
+    "galaxy": "GLXY", "gamestop": "GME", "nakamoto": "NAKA", "iren": "IREN",
+    # Big US
     "apple": "AAPL", "microsoft": "MSFT", "nvidia": "NVDA", "amazon": "AMZN",
-    "google": "GOOGL", "meta": "META", "adobe": "ADBE", "adbe": "ADBE",
-    "h100": "H100.L", "h100 group": "H100.L", "iren": "IREN",
+    "google": "GOOGL", "alphabet": "GOOGL", "meta": "META", "facebook": "META",
+    "tesla": "TSLA", "adobe": "ADBE", "walmart": "WMT", "costco": "COST",
+    "jpmorgan": "JPM", "jp morgan": "JPM", "visa": "V", "mastercard": "MA",
+    "berkshire": "BRK-B", "exxon": "XOM", "unitedhealth": "UNH",
+    "home depot": "HD", "procter": "PG", "johnson": "JNJ", "abbvie": "ABBV",
+    "eli lilly": "LLY", "lilly": "LLY", "broadcom": "AVGO",
+    # European
+    "porsche": "P911.DE", "bmw": "BMW.DE", "mercedes": "MBG.DE", "mercedes-benz": "MBG.DE",
+    "volkswagen": "VOW3.DE", "sap": "SAP.DE", "siemens": "SIE.DE", "allianz": "ALV.DE",
+    "lvmh": "MC.PA", "l'oreal": "OR.PA", "totalenergies": "TTE.PA", "shell": "SHEL.L",
+    "nestle": "NESN.SW", "roche": "ROG.SW", "novartis": "NOVN.SW", "asml": "ASML.AS",
+    "h100": "H100.L", "h100 group": "H100.L",
 }
 
 KNOWN_BTC_HOLDINGS = {
@@ -359,17 +371,45 @@ def create_revenue_price_chart(revenue_data, price_data, ticker):
     max_rev = max(rev_values) if rev_values else None
     return fig, latest_rev, min_rev, max_rev
 
-def resolve(text):
-    t = text.strip().lower()
+# ========== IMPROVED RESOLVER ==========
+def resolve(text: str) -> str:
+    """Resolve company name or ticker to a valid Yahoo Finance symbol."""
+    if not text or not text.strip():
+        return text
+    raw = text.strip()
+    t = raw.lower()
+
+    # 1. Exact match in NAME_MAP
     if t in NAME_MAP:
         return NAME_MAP[t]
-    # Common suffixes for international tickers
+
+    # 2. Already looks like a ticker (contains . or - or =)
+    if any(c in raw for c in [".", "-", "="]) or raw.isupper() and len(raw) <= 6:
+        return raw.upper()
+
+    # 3. Japanese numeric ticker
     if t.isdigit() and len(t) in (3, 4):
         return t + ".T"
-    # Allow commodities and ETFs directly
-    if any(x in t for x in ["=f", "-usd", ".l", ".de", ".pa", ".as"]):
-        return text.strip().upper()
-    return text.strip().upper()
+
+    # 4. Use yfinance Search
+    try:
+        search = yf.Search(raw, max_results=8)
+        quotes = search.quotes
+        if quotes:
+            # Prefer EQUITY, then prefer US exchanges, then first result
+            equities = [q for q in quotes if q.get("quoteType") == "EQUITY"]
+            candidates = equities if equities else quotes
+
+            # Prefer common US exchanges
+            us_pref = [q for q in candidates if q.get("exchange") in ("NMS", "NYQ", "NGM", "NCM")]
+            if us_pref:
+                return us_pref[0]["symbol"]
+            return candidates[0]["symbol"]
+    except Exception:
+        pass
+
+    # 5. Fallback – just uppercase
+    return raw.upper()
 
 def format_large_number(val, show_dollar=False):
     if val is None: return "—", ""
@@ -421,11 +461,25 @@ def get_company_extra(ticker):
         ih = t.institutional_holders
         if ih is not None and not ih.empty:
             for _, row in ih.head(8).iterrows():
-                name = row.get("Holder") or "Unknown"
-                pct = row.get("% Out") or row.get("pctOut")
-                pct_str = f"{float(pct)*100:.1f}%" if pct and float(pct) < 1 else (f"{float(pct):.1f}%" if pct else "—")
-                holders.append((str(name), pct_str))
-    except: pass
+                name = str(row.get("Holder") or "Unknown")
+                # Handle both pctHeld (0-1) and % Out
+                pct = row.get("pctHeld")
+                if pct is None:
+                    pct = row.get("% Out") or row.get("pctOut")
+                if pct is None or (isinstance(pct, float) and np.isnan(pct)):
+                    pct_str = "—"
+                else:
+                    try:
+                        p = float(pct)
+                        if p <= 1.0:          # fraction
+                            pct_str = f"{p*100:.1f}%"
+                        else:                 # already percent
+                            pct_str = f"{p:.1f}%"
+                    except:
+                        pct_str = "—"
+                holders.append((name, pct_str))
+    except:
+        pass
     return summary, holders
 
 def get_data(ticker):
@@ -597,9 +651,8 @@ ticker = st.session_state.selected_ticker
 data = get_data(ticker)
 summary, holders = get_company_extra(ticker)
 
-# Even if fundamentals are missing (ETFs / commodities), still show price
 if not data.get("current_price") and not data.get("price_usd"):
-    st.error(f"No price data found for **{ticker}**. Try a different ticker.")
+    st.error(f"No price data found for **{ticker}**. Try a different ticker or company name.")
 else:
     price_usd = data.get("price_usd")
     original = data.get("original_price")
@@ -745,7 +798,6 @@ else:
     if data.get("forward_pe") and data.get("price_usd") and data["forward_pe"] > 0:
         fair_value_pe = data["price_usd"] * (18 / data["forward_pe"])
 
-    # Only use P/E method for the chart (Owner Earnings removed when negative)
     fair_value = fair_value_pe
 
     def card(title, value, status, suffix="", raw_value=None, tooltip="", is_money=False):
@@ -796,7 +848,6 @@ else:
             card("Net Cash / Debt", "—", "gray")
         card("Free Cash Flow", "", "gray", raw_value=data.get("free_cashflow"), tooltip="Cash after capex", is_money=True)
 
-    # Fair Value (only P/E method now)
     if fair_value_pe:
         st.markdown('<div class="section-label">Fair Value Estimate</div>', unsafe_allow_html=True)
         st.markdown(f"""
@@ -815,7 +866,7 @@ else:
         <span style="font-family:'IBM Plex Mono',monospace; font-size:0.8rem; opacity:0.8">{greens}/8 GREEN</span>
     </div>""", unsafe_allow_html=True)
 
-    # Fair Value Iceberg Chart (only if we have a positive fair value)
+    # Fair Value Iceberg Chart
     if fair_value and price_usd and fair_value > 0:
         st.markdown('<div class="section-label">Fair Value Chart</div>', unsafe_allow_html=True)
         try:
