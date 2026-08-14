@@ -160,13 +160,11 @@ TOP_CRYPTOS = ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD", "BNB-USD", "ADA-USD",
                "AVAX-USD", "DOT-USD", "LINK-USD", "MATIC-USD", "LTC-USD", "ATOM-USD", "NEAR-USD"]
 
 NAME_MAP = {
-    # Bitcoin Treasury
     "strategy": "MSTR", "microstrategy": "MSTR", "mstr": "MSTR",
     "metaplanet": "3350.T", "twenty one": "XXI", "strive": "ASST",
     "marathon": "MARA", "bullish": "BLSH", "riot": "RIOT", "cleanspark": "CLSK",
     "hut 8": "HUT", "block": "XYZ", "coinbase": "COIN", "trump media": "DJT",
     "galaxy": "GLXY", "gamestop": "GME", "nakamoto": "NAKA", "iren": "IREN",
-    # Big US
     "apple": "AAPL", "microsoft": "MSFT", "nvidia": "NVDA", "amazon": "AMZN",
     "google": "GOOGL", "alphabet": "GOOGL", "meta": "META", "facebook": "META",
     "tesla": "TSLA", "adobe": "ADBE", "walmart": "WMT", "costco": "COST",
@@ -174,7 +172,6 @@ NAME_MAP = {
     "berkshire": "BRK-B", "exxon": "XOM", "unitedhealth": "UNH",
     "home depot": "HD", "procter": "PG", "johnson": "JNJ", "abbvie": "ABBV",
     "eli lilly": "LLY", "lilly": "LLY", "broadcom": "AVGO",
-    # European
     "porsche": "P911.DE", "bmw": "BMW.DE", "mercedes": "MBG.DE", "mercedes-benz": "MBG.DE",
     "volkswagen": "VOW3.DE", "sap": "SAP.DE", "siemens": "SIE.DE", "allianz": "ALV.DE",
     "lvmh": "MC.PA", "l'oreal": "OR.PA", "totalenergies": "TTE.PA", "shell": "SHEL.L",
@@ -373,34 +370,26 @@ def create_revenue_price_chart(revenue_data, price_data, ticker):
 
 # ========== IMPROVED RESOLVER ==========
 def resolve(text: str) -> str:
-    """Resolve company name or ticker to a valid Yahoo Finance symbol."""
     if not text or not text.strip():
         return text
     raw = text.strip()
     t = raw.lower()
 
-    # 1. Exact match in NAME_MAP
     if t in NAME_MAP:
         return NAME_MAP[t]
 
-    # 2. Already looks like a ticker (contains . or - or =)
-    if any(c in raw for c in [".", "-", "="]) or raw.isupper() and len(raw) <= 6:
+    if any(c in raw for c in [".", "-", "="]) or (raw.isupper() and len(raw) <= 6):
         return raw.upper()
 
-    # 3. Japanese numeric ticker
     if t.isdigit() and len(t) in (3, 4):
         return t + ".T"
 
-    # 4. Use yfinance Search
     try:
         search = yf.Search(raw, max_results=8)
         quotes = search.quotes
         if quotes:
-            # Prefer EQUITY, then prefer US exchanges, then first result
             equities = [q for q in quotes if q.get("quoteType") == "EQUITY"]
             candidates = equities if equities else quotes
-
-            # Prefer common US exchanges
             us_pref = [q for q in candidates if q.get("exchange") in ("NMS", "NYQ", "NGM", "NCM")]
             if us_pref:
                 return us_pref[0]["symbol"]
@@ -408,7 +397,6 @@ def resolve(text: str) -> str:
     except Exception:
         pass
 
-    # 5. Fallback – just uppercase
     return raw.upper()
 
 def format_large_number(val, show_dollar=False):
@@ -442,15 +430,37 @@ def get_shares_outstanding(ticker):
     try: return yf.Ticker(ticker).info.get("sharesOutstanding")
     except: return None
 
-def get_fx_rate(currency):
-    if not currency or currency.upper() == "USD": return 1.0
+# ========== FIXED FX CONVERSION ==========
+def get_fx_rate(currency: str) -> float:
+    """
+    Returns the multiplier to convert 1 unit of `currency` into USD.
+    Example: for JPY returns ~0.00627
+    """
+    if not currency or currency.upper() == "USD":
+        return 1.0
+
+    currency = currency.upper()
+
+    # 1. Prefer direct XXXUSD=X (JPYUSD=X → ~0.00627)
     try:
-        rate = yf.Ticker(f"{currency.upper()}=X").info.get("regularMarketPrice")
+        rate = yf.Ticker(f"{currency}USD=X").fast_info.last_price
         if rate and rate > 0:
             return float(rate)
-    except: pass
-    if currency.upper() == "JPY":
-        return 0.00675
+    except Exception:
+        pass
+
+    # 2. Fallback: USDXXX=X then invert (JPY=X → 159.5 → 1/159.5)
+    try:
+        rate = yf.Ticker(f"USD{currency}=X").fast_info.last_price
+        if rate and rate > 0:
+            return 1.0 / float(rate)
+    except Exception:
+        pass
+
+    # 3. Hard fallback for the most common case
+    if currency == "JPY":
+        return 0.00627   # ≈ 1 / 159.5
+
     return 1.0
 
 def get_company_extra(ticker):
@@ -462,7 +472,6 @@ def get_company_extra(ticker):
         if ih is not None and not ih.empty:
             for _, row in ih.head(8).iterrows():
                 name = str(row.get("Holder") or "Unknown")
-                # Handle both pctHeld (0-1) and % Out
                 pct = row.get("pctHeld")
                 if pct is None:
                     pct = row.get("% Out") or row.get("pctOut")
@@ -471,9 +480,9 @@ def get_company_extra(ticker):
                 else:
                     try:
                         p = float(pct)
-                        if p <= 1.0:          # fraction
+                        if p <= 1.0:
                             pct_str = f"{p*100:.1f}%"
-                        else:                 # already percent
+                        else:
                             pct_str = f"{p:.1f}%"
                     except:
                         pct_str = "—"
@@ -510,28 +519,24 @@ def get_data(ticker):
         data["total_cash"] = info.get("totalCash")
         data["total_debt"] = info.get("totalDebt")
         data["currency"] = (info.get("currency") or "USD").upper()
-    except: pass
+    except:
+        pass
 
     data["original_price"] = data["current_price"]
 
-    # Force conversion for Japanese stocks
-    is_japanese = ticker.endswith(".T") or data["currency"] in ["JPY", "¥"]
-    if is_japanese or ticker == "3350.T":
-        fx = get_fx_rate("JPY")
-        if data["current_price"]:
-            data["price_usd"] = data["current_price"] * fx
-            data["currency"] = "JPY"
-        if data.get("market_cap") and data["market_cap"] > 1e12:
-            data["market_cap"] = data["market_cap"] * fx
-    else:
-        fx = get_fx_rate(data["currency"])
-        if data["current_price"] and data["currency"] != "USD":
-            data["price_usd"] = data["current_price"] * fx
-        else:
-            data["price_usd"] = data["current_price"]
+    # ===== FIXED CURRENCY CONVERSION =====
+    fx = get_fx_rate(data["currency"])
+
+    if data["current_price"] is not None:
+        data["price_usd"] = data["current_price"] * fx
+
+    # Market cap from Yahoo for Japanese stocks is in JPY → convert to USD
+    if data.get("market_cap") and data["currency"] != "USD":
+        data["market_cap"] = data["market_cap"] * fx
 
     if data["total_cash"] is not None and data["total_debt"] is not None:
         data["net_cash"] = data["total_cash"] - data["total_debt"]
+
     return data
 
 def get_peer_metrics(tickers, btc_price):
@@ -872,26 +877,30 @@ else:
         try:
             hist = yf.Ticker(ticker).history(period="2y")
             if not hist.empty:
+                # Convert historical prices to USD if needed
+                fx = get_fx_rate(data.get("currency", "USD"))
+                hist_close = hist["Close"] * fx
+
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=list(hist.index) + list(hist.index[::-1]),
-                    y=list(np.minimum(hist["Close"], fair_value)) + [fair_value] * len(hist),
+                    y=list(np.minimum(hist_close, fair_value)) + [fair_value] * len(hist),
                     fill="toself", fillcolor="rgba(62,207,142,0.18)", line=dict(width=0),
                     name="Below Fair Value", hoverinfo="skip"
                 ))
                 fig.add_trace(go.Scatter(
                     x=list(hist.index) + list(hist.index[::-1]),
-                    y=list(np.maximum(hist["Close"], fair_value)) + [fair_value] * len(hist),
+                    y=list(np.maximum(hist_close, fair_value)) + [fair_value] * len(hist),
                     fill="toself", fillcolor="rgba(255,107,107,0.14)", line=dict(width=0),
                     name="Above Fair Value", hoverinfo="skip"
                 ))
                 fig.add_trace(go.Scatter(
-                    x=hist.index, y=hist["Close"], mode="lines", name="Price",
+                    x=hist.index, y=hist_close, mode="lines", name="Price (USD)",
                     line=dict(color="#7DD8FF", width=2.2)
                 ))
                 fig.add_hline(
                     y=fair_value, line_dash="dash", line_color="#E8A33D", line_width=1.6,
-                    annotation_text=f"Fair Value ${fair_value:.0f}",
+                    annotation_text=f"Fair Value ${fair_value:.2f}",
                     annotation_position="top left",
                     annotation_font_color="#E8A33D"
                 )
@@ -937,4 +946,3 @@ else:
         for name, pct in holders[:8]:
             st.markdown(f'<div class="holder-row"><span>{name}</span><span style="color:#E8A33D;">{pct}</span></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-
